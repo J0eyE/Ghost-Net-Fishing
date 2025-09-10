@@ -1,0 +1,109 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.sheashepherd</groupId>
+	<artifactId>ghostnet-mvp</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>war</packaging>
+
+	<properties>
+		<maven.compiler.release>17</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<jakarta.faces.version>4.0.2</jakarta.faces.version>
+		<weld.version>5.1.2.Final</weld.version>
+		<hibernate.version>6.5.2.Final</hibernate.version>
+		<mysql.version>8.4.0</mysql.version>
+		<h2.version>2.2.224</h2.version>
+
+		<!-- Bean Validation / EL -->
+		<validation.api.version>3.1.0</validation.api.version>
+		<hibernate.validator.version>8.0.1.Final</hibernate.validator.version>
+		<jakarta.el.version>4.0.2</jakarta.el.version>
+	</properties>
+
+	<dependencies>
+		<!-- Leaflet  -->
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>leaflet</artifactId>
+			<version>1.9.4</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- JSF  -->
+		<dependency>
+			<groupId>org.glassfish</groupId>
+			<artifactId>jakarta.faces</artifactId>
+			<version>${jakarta.faces.version}</version>
+		</dependency>
+
+		<!-- CDI -->
+		<dependency>
+			<groupId>org.jboss.weld.servlet</groupId>
+			<artifactId>weld-servlet-core</artifactId>
+			<version>${weld.version}</version>
+		</dependency>
+
+		<!-- JPA Provider -->
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>${hibernate.version}</version>
+			<!-- sicherheit -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.jboss.narayana.jta</groupId>
+					<artifactId>narayana-jta</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- JPA API  -->
+		<dependency>
+			<groupId>jakarta.persistence</groupId>
+			<artifactId>jakarta.persistence-api</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+
+		<!-- Bean Validation -->
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>${hibernate.validator.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.validation</groupId>
+			<artifactId>jakarta.validation-api</artifactId>
+			<version>${validation.api.version}</version>
+		</dependency>
+
+		<!-- EL-Implementation -->
+		<dependency>
+			<groupId>org.glassfish</groupId>
+			<artifactId>jakarta.el</artifactId>
+			<version>${jakarta.el.version}</version>
+		</dependency>
+
+		<!-- MySQL Treiber -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<version>${mysql.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- H2 für lokale Tests 
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+      <scope>runtime</scope>
+      <optional>true</optional> 
+    </dependency>-->
+	</dependencies>
+</project>
+
+

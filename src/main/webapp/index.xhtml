@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:h="jakarta.faces.html"
+	xmlns:f="jakarta.faces.core" xmlns:ui="jakarta.faces.facelets">
+<h:head>
+	<title>Ghost Net Fishing</title>
+
+	<!-- Leaflet -->
+	<link rel="stylesheet"
+		href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+		crossorigin=""></script>
+
+	<style>
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+		sans-serif;
+	background: #ccc;
+}
+
+.container {
+	padding: 12px 16px;
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th, td {
+	border: 1px solid #888;
+	padding: 4px 6px;
+}
+
+th {
+	background: #f7f7f7;
+}
+
+.pager {
+	display: flex;
+	gap: .5rem;
+	align-items: center;
+	margin: 10px 0 16px;
+}
+
+.pager .info {
+	margin-right: auto;
+	color: #555;
+}
+
+#map {
+	width: 100%;
+	height: 60vh;
+	border: 1px solid #888;
+}
+
+.overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, .35);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.modal {
+	background: #fff;
+	min-width: 380px;
+	max-width: 90vw;
+	border: 1px solid #666;
+	border-radius: 6px;
+	padding: 14px 16px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
+.modal h2 {
+	margin-top: 0
+}
+
+.actions a {
+	margin-right: .6rem
+}
+
+.hidden {
+	display: none
+}
+
+.nav {
+	padding: 8px 16px;
+	text-align: right;
+	border-bottom: 1px solid #ddd;
+	background: #fff;
+}
+
+.nav a, .nav span {
+	font-size: 14px;
+}
+</style>
+</h:head>
+
+<h:body>
+
+	<!-- NAVIGATION -->
+	<h:form id="navForm">
+		<div class="nav">
+			<h:panelGroup rendered="#{not auth.loggedIn}">
+				<h:commandLink value="Anmelden" action="#{auth.openLogin}">
+					<f:ajax render=":tableForm:authModalWrap :navForm" />
+				</h:commandLink>
+      &#160;|&#160;
+      <h:commandLink value="Registrierung" action="#{auth.openRegister}">
+					<f:ajax render=":tableForm:authModalWrap :navForm" />
+				</h:commandLink>
+			</h:panelGroup>
+
+			<h:panelGroup rendered="#{auth.loggedIn}">
+				<span>Hallo, #{auth.userDisplayName}</span>
+      &#160;|&#160;
+      <h:commandLink value="Profil" action="#{auth.openProfile}">
+					<f:ajax render=":tableForm:authModalWrap :navForm" />
+				</h:commandLink>
+      &#160;|&#160;
+				<h:commandLink value="Logout" action="#{auth.logout}">
+					<f:ajax
+						render=":navForm :tableForm:table :tableForm:pager :tableForm:mapData :tableForm:authModalWrap :tableForm:msgs"
+						onevent="_refreshMapOnAjax" />
+				</h:commandLink>
+			</h:panelGroup>
+		</div>
+	</h:form>
+
+	<!-- Globale Meldungen -->
+	<h:messages id="msgs" globalOnly="true"
+		style="color:#c60;margin:8px 16px;" />
+
+	<h:form id="tableForm" styleClass="container">
+
+		<h1 style="text-align: center;">Ghost Net Fishing</h1>
+
+		<!-- ======== TABELLE ======== -->
+		<h:dataTable id="table" value="#{gn.pageItems}" var="n">
+			<h:column>
+				<f:facet name="header">ID</f:facet>#{n.id}</h:column>
+			<h:column>
+				<f:facet name="header">Status</f:facet>#{n.status.label}</h:column>
+			<h:column>
+				<f:facet name="header">Koord.</f:facet>#{n.lat} / #{n.lon}</h:column>
+			<h:column>
+				<f:facet name="header">Größe m²</f:facet>#{n.size}</h:column>
+
+			<!-- Gemeldet -->
+			<h:column>
+				<f:facet name="header">Gemeldet</f:facet>
+				<h:panelGroup rendered="#{empty n.reporterName}">Anonym</h:panelGroup>
+				<h:panelGroup rendered="#{not empty n.reporterName}">
+          #{n.reporterName}
+          <h:outputText value=" (#{n.reporterPhone})"
+						rendered="#{not empty n.reporterPhone}" />
+				</h:panelGroup>
+			</h:column>
+
+			<!-- Bergung bevorstehend -->
+			<h:column>
+				<f:facet name="header">Bergung bevorstehend</f:facet>
+				<h:panelGroup rendered="#{empty n.salvor}">—</h:panelGroup>
+				<h:panelGroup rendered="#{not empty n.salvor}">
+          #{n.salvor.name}
+          <h:outputText value=" (#{n.salvor.phone})"
+						rendered="#{not empty n.salvor.phone}" />
+				</h:panelGroup>
+			</h:column>
+
+			<!-- Verschollen -->
+			<h:column>
+				<f:facet name="header">Verschollen</f:facet>
+				<h:panelGroup rendered="#{empty n.missingReporterName}">—</h:panelGroup>
+				<h:panelGroup rendered="#{not empty n.missingReporterName}">
+          #{n.missingReporterName}
+          <h:outputText value=" (#{n.missingReporterPhone})"
+						rendered="#{not empty n.missingReporterPhone}" />
+				</h:panelGroup>
+			</h:column>
+
+			<!-- Geborgen -->
+			<h:column>
+				<f:facet name="header">Geborgen</f:facet>
+				<h:panelGroup rendered="#{empty n.recoveredBy}">—</h:panelGroup>
+				<h:panelGroup rendered="#{not empty n.recoveredBy}">
+          #{n.recoveredBy.name}
+          <h:outputText value=" (#{n.recoveredBy.phone})"
+						rendered="#{not empty n.recoveredBy.phone}" />
+				</h:panelGroup>
+			</h:column>
+
+			<!-- Aktionen -->
+			<h:column>
+				<f:facet name="header">Aktion</f:facet>
+
+				<h:panelGroup
+					rendered="#{auth.loggedIn and n.status ne 'RECOVERED'}">
+					<span class="actions"> <h:commandLink value="bergen"
+							rendered="#{n.status eq 'REPORTED'}"
+							action="#{gn.openClaim(n.id)}" immediate="true">
+							<f:ajax render=":tableForm:modalWrap :tableForm:msgs" />
+						</h:commandLink> <h:commandLink value="vermisst"
+							rendered="#{n.status ne 'MISSING'}"
+							action="#{gn.openMissing(n.id)}" immediate="true">
+							<f:ajax render=":tableForm:modalWrap :tableForm:msgs" />
+						</h:commandLink> <h:commandLink value="geborgen"
+							action="#{gn.openRecovered(n.id)}" immediate="true">
+							<f:ajax render=":tableForm:modalWrap :tableForm:msgs" />
+						</h:commandLink>
+					</span>
+				</h:panelGroup>
+
+				<h:panelGroup
+					rendered="#{not auth.loggedIn and n.status ne 'RECOVERED'}">
+					<h:outputText value="(Anmeldung erforderlich)" />
+				</h:panelGroup>
+			</h:column>
+		</h:dataTable>
+
+		<!-- ======== PAGER ======== -->
+		<h:panelGroup id="pager" styleClass="pager">
+			<span class="info">Seite #{gn.page + 1} / #{gn.pageCount}</span>
+			<h:commandButton value="« Zurück" action="#{gn.prevPage}"
+				disabled="#{not gn.hasPrev}">
+				<f:ajax render=":tableForm:table :tableForm:pager" />
+			</h:commandButton>
+			<h:commandButton value="Weiter »" action="#{gn.nextPage}"
+				disabled="#{not gn.hasNext}">
+				<f:ajax render=":tableForm:table :tableForm:pager" />
+			</h:commandButton>
+		</h:panelGroup>
+
+		<!-- ======== KARTE ======== -->
+		<h:inputHidden id="lat" value="#{gn.lat}">
+			<f:convertNumber type="number" locale="en_US" groupingUsed="false"
+				maxFractionDigits="6" />
+		</h:inputHidden>
+		<h:inputHidden id="lon" value="#{gn.lon}">
+			<f:convertNumber type="number" locale="en_US" groupingUsed="false"
+				maxFractionDigits="6" />
+		</h:inputHidden>
+
+		<!-- ViewState + Lat/Lon  -->
+		<h:commandScript name="openReportCmd" action="#{gn.openReport}"
+			execute="@form :tableForm:lat :tableForm:lon"
+			render=":tableForm:modalWrap :tableForm:msgs" />
+
+		<h:panelGroup id="mapData">
+			<h:outputText id="openJson" value="#{gn.openJson}" escape="false"
+				style="display:none" />
+		</h:panelGroup>
+
+		<div id="map">Karte</div>
+
+		<!-- ======== NETZ-MODAL ======== -->
+		<h:panelGroup id="modalWrap">
+			<ui:fragment rendered="#{gn.modalOpen}">
+				<div class="overlay">
+					<div class="modal">
+						<h2>#{gn.modalTitle}</h2>
+
+						<!-- REPORT -->
+						<ui:fragment rendered="#{gn.modalAction eq 'report'}">
+							<p>
+								Koordinaten: <b>#{gn.lat}</b> / <b>#{gn.lon}</b>
+							</p>
+							
+							<p>
+								Größe m²:
+								<h:inputText id="mSize" value="#{gn.size}" required="true"
+									requiredMessage="Größe in m² angeben."
+									validatorMessage="Nur Zahl erlaubt (z. B. 12,5 oder 12.5).">
+									<f:validateRegex pattern="^[0-9]+$"/>
+								</h:inputText>
+								<h:message for="mSize" style="color:#c60" />
+							</p>
+
+							<p>
+								<h:selectBooleanCheckbox id="mAnon" value="#{gn.anonymous}">
+									<f:ajax render="modalNameWrap" />
+								</h:selectBooleanCheckbox>
+								<h:outputText value=" anonym melden" />
+							</p>
+
+							<h:panelGroup id="modalNameWrap" layout="block"
+								styleClass="#{gn.anonymous ? 'hidden' : ''}">
+								<p>
+									Name:
+									<h:inputText id="mName" value="#{gn.modalName}"
+										required="#{not gn.anonymous}"
+										requiredMessage="Name ist Pflicht." />
+									<h:message for="mName" style="color:#c60" />
+								</p>
+								<p>
+									Telefon:
+									<h:inputText id="mPhone" value="#{gn.modalPhone}"
+										required="#{not gn.anonymous}"
+										requiredMessage="Telefon ist Pflicht."
+										validatorMessage="Bitte eine gültige Telefonnummer angeben.">
+										<f:validateRegex pattern="^[+0-9 /-]{0,30}$" />
+									</h:inputText>
+									<h:message for="mPhone" style="color:#c60" />
+								</p>
+							</h:panelGroup>
+						</ui:fragment>
+
+						<!-- CLAIM / MISSING / RECOVERED -->
+						<ui:fragment
+							rendered="#{gn.modalAction ne 'report' and auth.loggedIn}">
+							<h:panelGroup id="modalNameWrapAuto" layout="block">
+								<p>
+									<b>Ausführend:</b>
+									<h:outputText value="#{auth.reportDisplayName}" />
+									<h:outputText value=" (#{auth.reportPhone})"
+										rendered="#{not empty auth.reportPhone}" />
+								</p>
+								<h:inputHidden id="mNameAuto" value="#{gn.modalName}" />
+								<h:inputHidden id="mPhoneAuto" value="#{gn.modalPhone}" />
+								<h:inputHidden id="mSelected" value="#{gn.selectedId}" />
+							</h:panelGroup>
+						</ui:fragment>
+
+						<!-- Fallback -->
+						<ui:fragment
+							rendered="#{gn.modalAction ne 'report' and not auth.loggedIn}">
+							<h:panelGroup id="modalNameWrapFallback" layout="block">
+								<p>
+									Name:
+									<h:inputText value="#{gn.modalName}" required="true"
+										requiredMessage="Name ist Pflicht." />
+								</p>
+								<p>
+									Telefon:
+									<h:inputText value="#{gn.modalPhone}" required="true"
+										requiredMessage="Telefon ist Pflicht."
+										validatorMessage="Bitte eine gültige Telefonnummer angeben.">
+										<f:validateRegex pattern="^[+0-9 /-]{0,30}$" />
+									</h:inputText>
+								</p>
+							</h:panelGroup>
+						</ui:fragment>
+
+						<h:inputHidden value="#{gn.selectedId}" />
+
+						<h:commandButton value="Speichern" action="#{gn.submitModal}">
+							<f:ajax execute="@form"
+								render=":tableForm:table :tableForm:pager :tableForm:modalWrap :tableForm:msgs :tableForm:mapData"
+								onevent="_refreshMapOnAjax" />
+						</h:commandButton>
+						&#160;
+						<h:commandButton value="Abbrechen" action="#{gn.cancelModal}"
+							immediate="true">
+							<f:ajax render=":tableForm:modalWrap" />
+						</h:commandButton>
+					</div>
+				</div>
+			</ui:fragment>
+		</h:panelGroup>
+
+		<!-- ======== AUTH-MODAL ======== -->
+		<h:panelGroup id="authModalWrap">
+			<ui:fragment rendered="#{auth.showModal}">
+				<div class="overlay">
+					<div class="modal" style="min-width: 420px;">
+						<!-- LOGIN -->
+						<ui:fragment rendered="#{auth.modal eq 'login'}">
+							<h2>Anmelden</h2>
+							<h:messages id="authMsgsLogin"
+								style="color:#c60;margin-bottom:8px;" />
+							<p>
+								Nachname:<br />
+								<h:inputText value="#{auth.loginLastName}" required="true"
+									requiredMessage="Nachname ist Pflicht." />
+							</p>
+							<p>
+								Passwort:<br />
+								<h:inputSecret value="#{auth.loginPassword}" required="true"
+									requiredMessage="Passwort ist Pflicht." />
+							</p>
+							<h:commandButton value="Anmelden" action="#{auth.login}">
+								<f:ajax execute="@form"
+									render=":navForm :tableForm:table :tableForm:pager :tableForm:mapData :tableForm:authModalWrap :tableForm:msgs"
+									onevent="_refreshMapOnAjax" />
+							</h:commandButton>
+              &#160;
+              <h:commandButton value="Abbrechen"
+								action="#{auth.closeModal}" immediate="true">
+								<f:ajax render=":tableForm:authModalWrap" />
+							</h:commandButton>
+						</ui:fragment>
+
+						<!-- REGISTRIERUNG -->
+						<ui:fragment rendered="#{auth.modal eq 'register'}">
+							<h2>Registrierung</h2>
+							<h:messages id="authMsgsReg"
+								style="color:#c60;margin-bottom:8px;" />
+							<p>
+								Vorname:<br />
+								<h:inputText value="#{auth.regFirstName}" required="true"
+									requiredMessage="Vorname ist Pflicht." />
+							</p>
+							<p>
+								Nachname:<br />
+								<h:inputText value="#{auth.regLastName}" required="true"
+									requiredMessage="Nachname ist Pflicht." />
+							</p>
+							<p>
+								Firma (optional):<br />
+								<h:inputText value="#{auth.regCompany}" />
+							</p>
+							<p>
+								Telefon:<br />
+								<h:inputText id="rPhone" value="#{auth.regPhone}"
+									required="true" requiredMessage="Telefon ist Pflicht."
+									validatorMessage="Bitte eine gültige Telefonnummer angeben.">
+									<f:validateRegex pattern="^[+0-9 /-]{0,30}$" />
+								</h:inputText>
+								<h:message for="rPhone" style="color:#c60" />
+							</p>
+							<p>
+								Passwort:<br />
+								<h:inputSecret value="#{auth.regPassword}" required="true"
+									requiredMessage="Passwort ist Pflicht." />
+							</p>
+							<p>
+								Passwort (Wiederholung):<br />
+								<h:inputSecret value="#{auth.regPassword2}" required="true"
+									requiredMessage="Bitte bestätigen." />
+							</p>
+							<h:commandButton value="Registrieren" action="#{auth.register}">
+								<f:ajax execute="@form"
+									render=":navForm :tableForm:table :tableForm:pager :tableForm:mapData :tableForm:authModalWrap :tableForm:msgs"
+									onevent="_refreshMapOnAjax" />
+							</h:commandButton>
+              &#160;
+              <h:commandButton value="Abbrechen"
+								action="#{auth.closeModal}" immediate="true">
+								<f:ajax render=":tableForm:authModalWrap" />
+							</h:commandButton>
+						</ui:fragment>
+
+						<!-- PROFIL -->
+						<ui:fragment rendered="#{auth.modal eq 'profile'}">
+							<h2>Profil</h2>
+							<p>
+								<b>Name:</b> #{auth.user.firstName} #{auth.user.lastName}
+							</p>
+							<p>
+								<b>Firma:</b> #{empty auth.user.company ? '—' :
+								auth.user.company}
+							</p>
+							<p>
+								<b>Telefon:</b> #{empty auth.user.phone ? '—' : auth.user.phone}
+							</p>
+							<p>
+								<h:commandButton value="Schließen" action="#{auth.closeModal}"
+									immediate="true">
+									<f:ajax render=":tableForm:authModalWrap" />
+								</h:commandButton>
+							</p>
+						</ui:fragment>
+					</div>
+				</div>
+			</ui:fragment>
+		</h:panelGroup>
+
+	</h:form>
+
+	<!-- ======== Map-Script ======== -->
+	<script type="text/javascript">
+  //<![CDATA[
+  (function () {
+    if (!window.L) {
+      var el = document.getElementById('map');
+      if (el) el.innerHTML = 'Leaflet konnte nicht geladen werden.';
+      return;
+    }
+
+    const map = L.map('map', {
+      minZoom: 2, maxZoom: 18, worldCopyJump: false,
+      maxBounds: [[-85,-180],[85,180]], maxBoundsViscosity: 1.0
+    });
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 2, maxZoom: 18, noWrap: true, attribution: '© OpenStreetMap'
+    }).addTo(map);
+    map.fitWorld();
+
+    const DATA_MARKERS = [];
+    const CLICK_MARKERS = [];
+
+    function colorFor(s){ return s==='CLAIMED'?'orange':(s==='REPORTED'?'blue':(s==='MISSING'?'red':'gray')); }
+    function clearMarkers(list){ list.forEach(m => map.removeLayer(m)); list.length = 0; }
+
+    function drawDataMarkers(list){
+      clearMarkers(DATA_MARKERS);
+      const bounds = [];
+      list.forEach(n=>{
+        if (n.status === 'RECOVERED') return;
+        if (typeof n.lat !== 'number' || typeof n.lon !== 'number') return;
+        const m = L.circleMarker([n.lat, n.lon], {radius:8, color:colorFor(n.status), fillOpacity:0.6}).addTo(map);
+        const tip = 'Status: ' + n.status + (n.salvor ? ' – ' + n.salvor : '');
+        m.bindTooltip(tip, {sticky:true, direction:'top'});
+        const who = n.salvor ? ('<br/><b>Bergend:</b> ' + n.salvor + (n.phone ? ' ('+n.phone+')' : '')) : '<br/><i>noch frei</i>';
+        m.bindPopup('<b>Netz #'+ n.id +'</b><br/><b>Status:</b> '+ n.status +'<br/><b>Größe:</b> '+ (n.size || '-') + who);
+        DATA_MARKERS.push(m);
+        bounds.push([n.lat, n.lon]);
+      });
+      if (bounds.length) map.fitBounds(bounds, {padding:[20,20]});
+    }
+
+    function refreshMapFromJson(){
+      const raw = document.getElementById('tableForm:openJson').textContent || '[]';
+      let list = [];
+      try { list = JSON.parse(raw); } catch(e) { console.error(e); }
+      drawDataMarkers(list);
+    }
+
+    window._refreshMapOnAjax = function(evt){
+      if (evt && evt.status === 'success') {
+        refreshMapFromJson();
+        clearMarkers(CLICK_MARKERS);
+      }
+    };
+
+    map.on('click', function(e){
+      const lat = +e.latlng.lat.toFixed(6);
+      const lon = +e.latlng.lng.toFixed(6);
+      document.getElementById('tableForm:lat').value = lat;
+      document.getElementById('tableForm:lon').value = lon;
+      const mk = L.marker([lat, lon]).addTo(map).bindTooltip('neue Meldung',{sticky:true, direction:'top'});
+      CLICK_MARKERS.push(mk);
+      window.openReportCmd();
+    });
+
+    refreshMapFromJson();
+    setTimeout(function(){ map.invalidateSize(); }, 0);
+  })();
+  //]]>
+  </script>
+</h:body>
+</html>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+	version="3.0">
+	<persistence-unit name="ghostnetPU"
+		transaction-type="RESOURCE_LOCAL">
+		<class>org.sheashepherd.ghostnet.model.GhostNet</class>
+		<class>org.sheashepherd.ghostnet.model.Person</class>
+		<class>org.sheashepherd.ghostnet.model.Account</class>
+
+		<properties>
+			<property name="jakarta.persistence.jdbc.driver"
+				value="com.mysql.cj.jdbc.Driver" />
+			<property name="jakarta.persistence.jdbc.url"
+				value="jdbc:mysql://localhost:3306/ghostnet?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;characterEncoding=utf8" />
+			<property name="jakarta.persistence.jdbc.user"
+				value="ghostnet" />
+			<property name="jakarta.persistence.jdbc.password"
+				value="ghostnetpw" />
+
+			<property name="hibernate.hbm2ddl.auto" value="update" />
+			<property name="hibernate.show_sql" value="true" />
+			<property name="hibernate.format_sql" value="true" />
+			<property name="hibernate.connection.autocommit"
+				value="true" />
+			<property name="hibernate.dialect"
+				value="org.hibernate.dialect.MySQLDialect" />
+		</properties>
+	</persistence-unit>
+</persistence>
