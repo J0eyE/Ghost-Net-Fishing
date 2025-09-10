@@ -209,7 +209,7 @@ th {
 							rendered="#{n.status eq 'REPORTED'}"
 							action="#{gn.openClaim(n.id)}" immediate="true">
 							<f:ajax render=":tableForm:modalWrap :tableForm:msgs" />
-						</h:commandLink> <h:commandLink value="vermisst"
+						</h:commandLink> <h:commandLink value="verschollen"
 							rendered="#{n.status ne 'MISSING'}"
 							action="#{gn.openMissing(n.id)}" immediate="true">
 							<f:ajax render=":tableForm:modalWrap :tableForm:msgs" />
@@ -549,4 +549,5 @@ th {
   //]]>
   </script>
 </h:body>
+
 </html>
