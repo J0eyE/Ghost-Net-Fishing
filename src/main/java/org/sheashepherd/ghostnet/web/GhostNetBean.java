@@ -101,7 +101,7 @@ public class GhostNetBean implements Serializable {
 	public String openMissing(Long id) {
 		selectedId = id;
 		modalAction = "missing";
-		modalTitle = "Als vermisst melden";
+		modalTitle = "Als verschollen melden";
 		prefillFromAuth();
 		modalOpen = true;
 		return null;
@@ -357,3 +357,4 @@ public class GhostNetBean implements Serializable {
 		this.page = page;
 	}
 }
+
